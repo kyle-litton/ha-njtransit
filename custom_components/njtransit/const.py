@@ -1,26 +1,14 @@
-"""Constants for the NJ Transit integration."""
+"""Constants for NJ Transit integration."""
 DOMAIN = "njtransit"
-
-# Configuration
-CONF_API_KEY = "api_key"
 CONF_USERNAME = "username"
-
-# Station codes
-STATION_CHATHAM = "CM"
-STATION_HOBOKEN = "HB"
-
-# Service endpoints
-API_ENDPOINT = "https://api.njtransit.com/departureboard/v1/station"
-
-# Default values
-DEFAULT_NAME = "NJ Transit"
+CONF_PASSWORD = "password"
+CONF_FROM_STATION = "from_station"
+CONF_TO_STATION = "to_station"
+CONF_SCAN_INTERVAL = "scan_interval"
 DEFAULT_SCAN_INTERVAL = 300  # 5 minutes
 
-# Sensor attributes
-ATTR_TRAIN_ID = "train_id"
-ATTR_DEPARTURE_TIME = "departure_time"
-ATTR_MINUTES_UNTIL = "minutes_until"
-ATTR_STATUS = "status"
-ATTR_TRACK = "track"
-ATTR_NEXT_TRAINS = "next_trains"
-ATTR_LAST_UPDATED = "last_updated"
+# NJ Transit API endpoints
+API_BASE_URL = "https://testraildata.njtransit.com/api"
+AUTH_ENDPOINT = f"{API_BASE_URL}/Auth/login"
+STATION_LIST_ENDPOINT = f"{API_BASE_URL}/Station/getStationList"
+SCHEDULE_ENDPOINT = f"{API_BASE_URL}/Schedule/getSchedule"

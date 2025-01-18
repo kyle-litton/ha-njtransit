@@ -1,102 +1,187 @@
-"""Support for NJ Transit sensors."""
-from datetime import timedelta
+"""NJ Transit sensor platform."""
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, Optional
+import requests
+from datetime import datetime, timedelta
+from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-    DataUpdateCoordinator,
-)
+from homeassistant.helpers.typing import StateType
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
-from .api import NJTransitAPI
 from .const import (
     DOMAIN,
-    CONF_API_KEY,
     CONF_USERNAME,
-    STATION_CHATHAM,
-    STATION_HOBOKEN,
-    DEFAULT_SCAN_INTERVAL,
+    CONF_PASSWORD,
+    CONF_FROM_STATION,
+    CONF_TO_STATION,
+    AUTH_ENDPOINT,
+    SCHEDULE_ENDPOINT,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up NJ Transit sensor based on a config entry."""
-    api = NJTransitAPI(
-        api_key=entry.data[CONF_API_KEY],
-        username=entry.data[CONF_USERNAME],
+    """Set up the NJ Transit sensor from config entry."""
+    config = config_entry.data
+    
+    sensor = NJTransitSensor(
+        f"NJ Transit {config[CONF_FROM_STATION]} to {config[CONF_TO_STATION]}",
+        config[CONF_USERNAME],
+        config[CONF_PASSWORD],
+        config[CONF_FROM_STATION],
+        config[CONF_TO_STATION]
     )
+    
+    async_add_entities([sensor], True)
 
-    async def async_update_data():
-        """Fetch data from API."""
-        return {
-            "outbound": await hass.async_add_executor_job(
-                api.get_train_schedule, STATION_CHATHAM, STATION_HOBOKEN
-            ),
-            "inbound": await hass.async_add_executor_job(
-                api.get_train_schedule, STATION_HOBOKEN, STATION_CHATHAM
-            ),
-        }
+class NJTransitSensor(SensorEntity):
+    """Implementation of a NJ Transit sensor."""
 
-    coordinator = DataUpdateCoordinator(
-        hass,
-        _LOGGER,
-        name="njtransit",
-        update_method=async_update_data,
-        update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
-    )
-
-    await coordinator.async_config_entry_first_refresh()
-
-    async_add_entities(
-        [
-            NJTransitSensor(coordinator, "outbound", "Chatham to Hoboken"),
-            NJTransitSensor(coordinator, "inbound", "Hoboken to Chatham"),
-        ]
-    )
-
-class NJTransitSensor(CoordinatorEntity, SensorEntity):
-    """Representation of a NJ Transit sensor."""
+    _attr_has_entity_name = True
+    _attr_native_unit_of_measurement = "trips"
 
     def __init__(
         self,
-        coordinator: DataUpdateCoordinator,
-        direction: str,
         name: str,
+        username: str,
+        password: str,
+        from_station: str,
+        to_station: str
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator)
-        self._direction = direction
         self._attr_name = name
-        self._attr_unique_id = f"njtransit_{direction}"
+        self._username = username
+        self._password = password
+        self._from_station = from_station
+        self._to_station = to_station
+        self._attr_unique_id = f"njtransit_{from_station}_to_{to_station}"
+        
+        self._token: str | None = None
+        self._token_expires: datetime | None = None
+        self._attr_native_value: StateType | datetime = None
+        self._attr_extra_state_attributes: dict[str, Any] = {}
 
-    @property
-    def native_value(self) -> Optional[str]:
-        """Return the state of the sensor."""
-        if not self.coordinator.data or not self.coordinator.data.get(self._direction):
-            return None
-        next_train = self.coordinator.data[self._direction][0]
-        return f"{next_train['departure_time']} ({next_train['minutes_until']}min)"
+    def _get_token(self) -> str | None:
+        """Get authentication token."""
+        if self._token and self._token_expires and datetime.now() < self._token_expires:
+            return self._token
 
-    @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
-        """Return the state attributes."""
-        if not self.coordinator.data or not self.coordinator.data.get(self._direction):
-            return {}
-        return {
-            "next_trains": self.coordinator.data[self._direction],
-            "last_updated": self.coordinator.last_update_success_time,
-        }
+        try:
+            response = requests.post(
+                AUTH_ENDPOINT,
+                json={
+                    "username": self._username,
+                    "password": self._password
+                },
+                headers={"accept": "application/json"},
+                timeout=10
+            )
+            response.raise_for_status()
+            auth_data = response.json()
+            
+            self._token = auth_data.get("token")
+            # Set token expiration (assuming token expires in 1 hour, adjust as needed)
+            self._token_expires = datetime.now() + timedelta(hours=1)
+            
+            return self._token
+
+        except requests.exceptions.RequestException as error:
+            _LOGGER.error("Error authenticating with NJ Transit API: %s", error)
+            raise ConfigEntryAuthFailed from error
 
     @property
     def icon(self) -> str:
-        """Return the icon of the sensor."""
+        """Return the icon to use in the frontend."""
         return "mdi:train"
+
+    def update(self) -> None:
+        """Fetch new state data for the sensor."""
+        try:
+            token = self._get_token()
+            if not token:
+                self._attr_native_value = None
+                self._attr_extra_state_attributes = {}
+                return
+
+            headers = {
+                "accept": "application/json",
+                "authorization": f"Bearer {token}"
+            }
+
+            # Get schedule for both directions
+            params = {
+                "origin": self._from_station,
+                "destination": self._to_station,
+                "date": datetime.now().strftime("%Y-%m-%d")
+            }
+            
+            # Get outbound schedule
+            response = requests.get(
+                SCHEDULE_ENDPOINT,
+                params=params,
+                headers=headers,
+                timeout=10
+            )
+            response.raise_for_status()
+            outbound_data = response.json()
+
+            # Get inbound schedule (swap origin and destination)
+            params["origin"], params["destination"] = params["destination"], params["origin"]
+            response = requests.get(
+                SCHEDULE_ENDPOINT,
+                params=params,
+                headers=headers,
+                timeout=10
+            )
+            response.raise_for_status()
+            inbound_data = response.json()
+
+            # Process the next 3 trips in each direction
+            outbound_trips = []
+            inbound_trips = []
+            
+            # Parse outbound trips (from -> to)
+            for trip in outbound_data.get("trips", [])[:3]:
+                outbound_trips.append({
+                    "departure_time": trip.get("departure_time"),
+                    "arrival_time": trip.get("arrival_time"),
+                    "train_id": trip.get("train_id"),
+                    "line": trip.get("line"),
+                    "status": trip.get("status", "Unknown")
+                })
+
+            # Parse inbound trips (to -> from)
+            for trip in inbound_data.get("trips", [])[:3]:
+                inbound_trips.append({
+                    "departure_time": trip.get("departure_time"),
+                    "arrival_time": trip.get("arrival_time"),
+                    "train_id": trip.get("train_id"),
+                    "line": trip.get("line"),
+                    "status": trip.get("status", "Unknown")
+                })
+
+            # Update state and attributes
+            self._attr_native_value = len(outbound_trips + inbound_trips)
+            self._attr_extra_state_attributes = {
+                "outbound_trips": outbound_trips,
+                "inbound_trips": inbound_trips,
+                "last_updated": datetime.now().isoformat(),
+                "from_station": self._from_station,
+                "to_station": self._to_station
+            }
+
+        except requests.exceptions.RequestException as error:
+            _LOGGER.error("Error fetching data from NJ Transit API: %s", error)
+            self._attr_native_value = None
+            self._attr_extra_state_attributes = {}
+            if "401" in str(error) or "403" in str(error):
+                raise ConfigEntryAuthFailed from error

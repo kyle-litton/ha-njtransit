@@ -1,20 +1,25 @@
 {
     "config": {
-      "step": {
-        "user": {
-          "title": "NJ Transit",
-          "description": "Set up NJ Transit integration. You need an API key and username from NJ Transit Developer Portal.",
-          "data": {
-            "api_key": "API Key",
-            "username": "Username"
-          }
+        "title": "NJ Transit",
+        "step": {
+            "user": {
+                "title": "Set up NJ Transit Integration",
+                "description": "Enter your NJ Transit credentials and station codes",
+                "data": {
+                    "username": "Username",
+                    "password": "Password",
+                    "from_station": "Origin Station Code",
+                    "to_station": "Destination Station Code"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect to NJ Transit API",
+            "invalid_auth": "Invalid username or password",
+            "invalid_station": "Invalid station code"
+        },
+        "abort": {
+            "already_configured": "This station pair is already configured"
         }
-      },
-      "error": {
-        "auth": "Invalid credentials. Please check your API key and username."
-      },
-      "abort": {
-        "already_configured": "NJ Transit is already configured"
-      }
     }
-  }
+}

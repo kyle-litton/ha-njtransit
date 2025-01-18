@@ -1,6 +1,6 @@
 # NJ Transit for Home Assistant
 
-This integration provides NJ Transit train schedules in Home Assistant, specifically for trains between Chatham and Hoboken stations.
+This integration provides NJ Transit train schedules in Home Assistant.
 
 ## Features
 
@@ -8,16 +8,16 @@ This integration provides NJ Transit train schedules in Home Assistant, specific
 - Next train departure times
 - Train status and track information
 - Automatic updates every 5 minutes
-- Support for both directions (Chatham ↔ Hoboken)
+- Support for both directions
 
 ## Installation
 
 ### HACS (Recommended)
 1. Open HACS in Home Assistant
-2. Click on "Integrations"
-3. Click the "+" button
-4. Search for "NJ Transit"
-5. Click "Install"
+2. Click on tridot
+3. Click the "Custom Respositories"
+4. Paste this repo url
+5. Select "Integration" type
 6. Restart Home Assistant
 
 ### Manual Installation
@@ -33,13 +33,13 @@ This integration provides NJ Transit train schedules in Home Assistant, specific
    - API Key
    - Username
 
-You can obtain API credentials from the [NJ Transit Developer Portal](https://developer.njtransit.com/).
+You can obtain API credentials from the [NJ Transit Developer Portal](https://developer.njtransit.com/registration/docs).
 
 ## Usage
 
 After configuration, the integration will create two sensors:
-- `sensor.chatham_to_hoboken`
-- `sensor.hoboken_to_chatham`
+- `sensor.source_to_destination`
+- `sensor.destination_to_source`
 
 Each sensor provides:
 - Next departure time
@@ -54,14 +54,10 @@ Each sensor provides:
 type: entities
 title: NJ Transit Trains
 entities:
-  - entity: sensor.chatham_to_hoboken
-  - entity: sensor.hoboken_to_chatham
+  - entity: sensor.source_to_destination
+  - entity: sensor.destination_to_source
 ```
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.

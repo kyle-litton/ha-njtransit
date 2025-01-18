@@ -14,7 +14,6 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from .const import (
-    DOMAIN,
     CONF_USERNAME,
     CONF_PASSWORD,
     CONF_FROM_STATION,
@@ -26,7 +25,6 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
-    hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -89,8 +87,7 @@ class NJTransitSensor(SensorEntity):
             auth_data = response.json()
             
             self._token = auth_data.get("token")
-            # Set token expiration (assuming token expires in 1 hour, adjust as needed)
-            self._token_expires = datetime.now() + timedelta(hours=1)
+            self._token_expires = datetime.now() + timedelta(hours=12)
             
             return self._token
 
@@ -114,20 +111,20 @@ class NJTransitSensor(SensorEntity):
 
             headers = {
                 "accept": "application/json",
-                "authorization": f"Bearer {token}"
             }
 
             # Get schedule for both directions
             params = {
+                "token": token,
                 "origin": self._from_station,
                 "destination": self._to_station,
                 "date": datetime.now().strftime("%Y-%m-%d")
             }
             
             # Get outbound schedule
-            response = requests.get(
+            response = requests.post(
                 SCHEDULE_ENDPOINT,
-                params=params,
+                json=params,
                 headers=headers,
                 timeout=10
             )
@@ -136,15 +133,15 @@ class NJTransitSensor(SensorEntity):
 
             # Get inbound schedule (swap origin and destination)
             params["origin"], params["destination"] = params["destination"], params["origin"]
-            response = requests.get(
+            response = requests.post(
                 SCHEDULE_ENDPOINT,
-                params=params,
+                json=params,
                 headers=headers,
                 timeout=10
             )
             response.raise_for_status()
             inbound_data = response.json()
-
+            _LOGGER.warning(inbound_data)
             # Process the next 3 trips in each direction
             outbound_trips = []
             inbound_trips = []

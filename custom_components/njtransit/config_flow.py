@@ -35,11 +35,12 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     headers={"accept": "application/json"}
                 )
                 auth_response.raise_for_status()
-                token = auth_response.json().get("token")
+                token = auth_response.json().get("UserToken")
 
                 # Test token by fetching station list
-                stations_response = requests.get(
+                stations_response = requests.post(
                     STATION_LIST_ENDPOINT,
+                    json={"token": token},
                     headers={
                         "accept": "application/json",
                         "authorization": f"Bearer {token}"

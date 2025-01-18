@@ -116,9 +116,7 @@ class NJTransitSensor(SensorEntity):
             # Get schedule for both directions
             params = {
                 "token": token,
-                "origin": self._from_station,
-                "destination": self._to_station,
-                "date": datetime.now().strftime("%Y-%m-%d")
+                "station" : self._from_station
             }
             
             # Get outbound schedule
@@ -132,7 +130,7 @@ class NJTransitSensor(SensorEntity):
             outbound_data = response.json()
 
             # Get inbound schedule (swap origin and destination)
-            params["origin"], params["destination"] = params["destination"], params["origin"]
+            params["station"] = self._to_station
             response = requests.post(
                 SCHEDULE_ENDPOINT,
                 json=params,
@@ -147,24 +145,26 @@ class NJTransitSensor(SensorEntity):
             inbound_trips = []
             
             # Parse outbound trips (from -> to)
-            for trip in outbound_data.get("trips", [])[:3]:
-                outbound_trips.append({
-                    "departure_time": trip.get("departure_time"),
-                    "arrival_time": trip.get("arrival_time"),
-                    "train_id": trip.get("train_id"),
-                    "line": trip.get("line"),
-                    "status": trip.get("status", "Unknown")
-                })
+            for trip in outbound_data.get("ITEMS", [])[:3]:
+                if trip.get("DESTINATION") == self._to_station:
+                    outbound_trips.append({
+                        "status": trip.get("STATUS", "Unknown"),
+                        "scheduled_date": trip.get("SCHED_DEP_DATE"),
+                        "train_id": trip.get("TRAIN_ID"),
+                        "line": trip.get("LINE"),
+                        "track": trip.get("TRACK", "Unknown")
+                    })
 
             # Parse inbound trips (to -> from)
             for trip in inbound_data.get("trips", [])[:3]:
-                inbound_trips.append({
-                    "departure_time": trip.get("departure_time"),
-                    "arrival_time": trip.get("arrival_time"),
-                    "train_id": trip.get("train_id"),
-                    "line": trip.get("line"),
-                    "status": trip.get("status", "Unknown")
-                })
+                if trip.get("DESTINATION") == self._from_station:
+                    outbound_trips.append({
+                        "status": trip.get("STATUS", "Unknown"),
+                        "scheduled_date": trip.get("SCHED_DEP_DATE"),
+                        "train_id": trip.get("TRAIN_ID"),
+                        "line": trip.get("LINE"),
+                        "track": trip.get("TRACK", "Unknown")
+                    })
 
             # Update state and attributes
             self._attr_native_value = len(outbound_trips + inbound_trips)

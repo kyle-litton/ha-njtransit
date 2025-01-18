@@ -1,6 +1,7 @@
 """Config flow for NJ Transit integration."""
 import voluptuous as vol
 import requests
+import logging
 from homeassistant import config_entries
 from homeassistant.core import callback
 
@@ -13,6 +14,8 @@ from .const import (
     AUTH_ENDPOINT,
     STATION_LIST_ENDPOINT
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for NJ Transit."""
@@ -49,7 +52,8 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 stations_response.raise_for_status()
                 
                 stations = stations_response.json()
-                station_codes = [station["code"] for station in stations]
+                _LOGGER.warning(stations)
+                station_codes = [station["STATIONNAME"] for station in stations]
                 
                 # Validate station codes
                 if user_input[CONF_FROM_STATION] not in station_codes:

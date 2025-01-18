@@ -1,0 +1,12 @@
+{
+    "domain": "njtransit",
+    "name": "NJ Transit",
+    "documentation": "https://github.com/kyle-litton/ha-njtransit",
+    "issue_tracker": "https://github.com/kyle-litton/ha-njtransit/issues",
+    "dependencies": [],
+    "config_flow": true,
+    "codeowners": ["@kyle-litton"],
+    "requirements": ["requests>=2.31.0", "pytz>=2023.3"],
+    "version": "1.0.0",
+    "iot_class": "cloud_polling"
+  }

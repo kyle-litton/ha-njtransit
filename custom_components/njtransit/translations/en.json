@@ -1,0 +1,20 @@
+{
+    "config": {
+      "step": {
+        "user": {
+          "title": "NJ Transit",
+          "description": "Set up NJ Transit integration. You need an API key and username from NJ Transit Developer Portal.",
+          "data": {
+            "api_key": "API Key",
+            "username": "Username"
+          }
+        }
+      },
+      "error": {
+        "auth": "Invalid credentials. Please check your API key and username."
+      },
+      "abort": {
+        "already_configured": "NJ Transit is already configured"
+      }
+    }
+  }

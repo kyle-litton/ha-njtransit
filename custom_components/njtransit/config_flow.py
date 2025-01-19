@@ -9,8 +9,8 @@ from .const import (
     DOMAIN,
     CONF_USERNAME,
     CONF_PASSWORD,
-    CONF_FROM_STATION,
-    CONF_TO_STATION,
+    CONF_STATION,
+    CONF_STATION_CODE,
     AUTH_ENDPOINT,
     STATION_LIST_ENDPOINT
 )
@@ -58,17 +58,16 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         stations_response.raise_for_status()
                         stations = await stations_response.json()
                         
-                        station_codes = [station["STATIONNAME"] for station in stations]
+                        station_details = {station["STATIONNAME"]: station for station in stations}
                         
-                        # Validate station codes
-                        if user_input[CONF_FROM_STATION] not in station_codes:
-                            errors["from_station"] = "invalid_station"
-                        if user_input[CONF_TO_STATION] not in station_codes:
-                            errors["to_station"] = "invalid_station"
+                        # Validate station codes, and grab the station code
+                        if user_input[CONF_STATION] not in station_details.keys():
+                            errors["station"] = "invalid_station"
                         
                         if not errors:
+                            user_input[CONF_STATION_CODE] = station_details[user_input[CONF_STATION]]["STATION_2CHAR"]
                             return self.async_create_entry(
-                                title=f"NJ Transit {user_input[CONF_FROM_STATION]} to {user_input[CONF_TO_STATION]}",
+                                title=f"NJ Transit: {user_input[CONF_STATION]} Station",
                                 data=user_input,
                             )
                     
@@ -82,8 +81,7 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_USERNAME): str,
                     vol.Required(CONF_PASSWORD): str,
-                    vol.Required(CONF_FROM_STATION): str,
-                    vol.Required(CONF_TO_STATION): str,
+                    vol.Required(CONF_STATION): str
                 }
             ),
             errors=errors,

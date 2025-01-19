@@ -6,7 +6,7 @@ This integration provides NJ Transit train schedules in Home Assistant. Not affi
 
 - Real-time train schedules
 - Next train departure times
-- Train status and track information
+- Station status and track information
 
 ## Installation
 
@@ -35,16 +35,8 @@ You can obtain API credentials from the [NJ Transit Developer Portal](https://de
 
 ## Usage
 
-After configuration, the integration will create two sensors:
-- `sensor.source_to_destination`
-- `sensor.destination_to_source`
-
-Each sensor provides:
-- Next departure time
-- Minutes until departure
-- Train status
-- Track information
-- Additional upcoming trains as attributes
+After configuration, the integration will create a new sensors:
+- `sensor.station`
 
 ## Contributing
 

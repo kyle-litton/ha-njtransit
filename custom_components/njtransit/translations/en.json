@@ -4,19 +4,18 @@
         "step": {
             "user": {
                 "title": "Set up NJ Transit Integration",
-                "description": "Enter your NJ Transit credentials and stations",
+                "description": "Enter your NJ Transit credentials and station",
                 "data": {
                     "username": "Username",
                     "password": "Password",
-                    "from_station": "Origin Station",
-                    "to_station": "Destination Station"
+                    "station": "Station"
                 }
             }
         },
         "error": {
             "cannot_connect": "Failed to connect to NJ Transit API",
             "invalid_auth": "Invalid username or password",
-            "invalid_station": "Invalid station code"
+            "invalid_station": "Invalid station"
         },
         "abort": {
             "already_configured": "This station pair is already configured"

@@ -1,14 +1,12 @@
 # NJ Transit for Home Assistant
 
-This integration provides NJ Transit train schedules in Home Assistant.
+This integration provides NJ Transit train schedules in Home Assistant. Not affiliated with NJTransit please follow the usage rules outlined on the [NJ Transit Developer Portal](https://developer.njtransit.com/registration/docs). 
 
 ## Features
 
 - Real-time train schedules
 - Next train departure times
 - Train status and track information
-- Automatic updates every 5 minutes
-- Support for both directions
 
 ## Installation
 
@@ -47,16 +45,6 @@ Each sensor provides:
 - Train status
 - Track information
 - Additional upcoming trains as attributes
-
-### Example Lovelace Card
-
-```yaml
-type: entities
-title: NJ Transit Trains
-entities:
-  - entity: sensor.source_to_destination
-  - entity: sensor.destination_to_source
-```
 
 ## Contributing
 

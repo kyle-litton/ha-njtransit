@@ -165,7 +165,7 @@ class NJTransitSensor(SensorEntity):
                     })
 
             # Parse inbound trips (to -> from)
-            for trip in inbound_data.get("trips", [])[:3]:
+            for trip in inbound_data.get("ITEMS", [])[:3]:
                 if trip.get("DESTINATION") == self._from_station:
                     outbound_trips.append({
                         "status": trip.get("STATUS", "Unknown"),

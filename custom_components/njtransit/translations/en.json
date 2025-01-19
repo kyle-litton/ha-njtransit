@@ -4,12 +4,12 @@
         "step": {
             "user": {
                 "title": "Set up NJ Transit Integration",
-                "description": "Enter your NJ Transit credentials and station codes",
+                "description": "Enter your NJ Transit credentials and stations",
                 "data": {
                     "username": "Username",
                     "password": "Password",
-                    "from_station": "Origin Station Code",
-                    "to_station": "Destination Station Code"
+                    "from_station": "Origin Station",
+                    "to_station": "Destination Station"
                 }
             }
         },

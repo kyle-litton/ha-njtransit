@@ -58,7 +58,6 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         stations_response.raise_for_status()
                         stations = await stations_response.json()
                         
-                        _LOGGER.warning(stations)
                         station_codes = [station["STATIONNAME"] for station in stations]
                         
                         # Validate station codes

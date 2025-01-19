@@ -120,6 +120,7 @@ class NJTransitSensor(SensorEntity):
             params = aiohttp.FormData()
             params.add_field("token", token)
             params.add_field("station", self._from_station)
+            params.add_field("NJTOnly", "true")
             
             async with aiohttp.ClientSession() as session:
                 # Get outbound schedule
@@ -136,6 +137,7 @@ class NJTransitSensor(SensorEntity):
                 params = aiohttp.FormData()
                 params.add_field("token", token)
                 params.add_field("station", self._to_station)
+                params.add_field("NJTOnly", "true")
                 
                 async with session.post(
                     SCHEDULE_ENDPOINT,

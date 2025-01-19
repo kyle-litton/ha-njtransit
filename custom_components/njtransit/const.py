@@ -11,4 +11,4 @@ DEFAULT_SCAN_INTERVAL = 300  # 5 minutes
 API_BASE_URL = "https://testraildata.njtransit.com/api"
 AUTH_ENDPOINT = f"{API_BASE_URL}/TrainData/getToken"
 STATION_LIST_ENDPOINT = f"{API_BASE_URL}/TrainData/getStationList"
-SCHEDULE_ENDPOINT = f"{API_BASE_URL}/TrainData/getTrainSchedule"
+SCHEDULE_ENDPOINT = f"{API_BASE_URL}/TrainData/getStationSchedule"

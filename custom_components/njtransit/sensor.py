@@ -122,7 +122,7 @@ class NJTransitSensor(SensorEntity):
             # Get schedule for station
             params = aiohttp.FormData()
             params.add_field("token", token)
-            params.add_field("station", self.__station_code)
+            params.add_field("station", self._station_code)
             
             async with aiohttp.ClientSession() as session:
                 async with session.post(

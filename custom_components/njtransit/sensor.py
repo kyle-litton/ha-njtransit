@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-import requests
+import aiohttp
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -25,6 +25,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
+    hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
@@ -68,30 +69,31 @@ class NJTransitSensor(SensorEntity):
         self._attr_native_value: StateType | datetime = None
         self._attr_extra_state_attributes: dict[str, Any] = {}
 
-    def _get_token(self) -> str | None:
+    async def _get_token(self) -> str | None:
         """Get authentication token."""
         if self._token and self._token_expires and datetime.now() < self._token_expires:
             return self._token
 
         try:
-            response = requests.post(
-                AUTH_ENDPOINT,
-                json={
-                    "username": self._username,
-                    "password": self._password
-                },
-                headers={"accept": "application/json"},
-                timeout=10
-            )
-            response.raise_for_status()
-            auth_data = response.json()
-            
-            self._token = auth_data.get("token")
-            self._token_expires = datetime.now() + timedelta(hours=12)
-            
-            return self._token
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    AUTH_ENDPOINT,
+                    json={
+                        "username": self._username,
+                        "password": self._password
+                    },
+                    headers={"accept": "application/json"},
+                    timeout=10
+                ) as response:
+                    response.raise_for_status()
+                    auth_data = await response.json()
+                    
+                    self._token = auth_data.get("token")
+                    self._token_expires = datetime.now() + timedelta(hours=12)
+                    
+                    return self._token
 
-        except requests.exceptions.RequestException as error:
+        except aiohttp.ClientError as error:
             _LOGGER.error("Error authenticating with NJ Transit API: %s", error)
             raise ConfigEntryAuthFailed from error
 
@@ -100,10 +102,10 @@ class NJTransitSensor(SensorEntity):
         """Return the icon to use in the frontend."""
         return "mdi:train"
 
-    def update(self) -> None:
+    async def async_update(self) -> None:
         """Fetch new state data for the sensor."""
         try:
-            token = self._get_token()
+            token = await self._get_token()
             if not token:
                 self._attr_native_value = None
                 self._attr_extra_state_attributes = {}
@@ -119,26 +121,28 @@ class NJTransitSensor(SensorEntity):
                 "station" : self._from_station
             }
             
-            # Get outbound schedule
-            response = requests.post(
-                SCHEDULE_ENDPOINT,
-                json=params,
-                headers=headers,
-                timeout=10
-            )
-            response.raise_for_status()
-            outbound_data = response.json()
+            async with aiohttp.ClientSession() as session:
+                # Get outbound schedule
+                async with session.post(
+                    SCHEDULE_ENDPOINT,
+                    json=params,
+                    headers=headers,
+                    timeout=10
+                ) as response:
+                    response.raise_for_status()
+                    outbound_data = await response.json()
 
-            # Get inbound schedule (swap origin and destination)
-            params["station"] = self._to_station
-            response = requests.post(
-                SCHEDULE_ENDPOINT,
-                json=params,
-                headers=headers,
-                timeout=10
-            )
-            response.raise_for_status()
-            inbound_data = response.json()
+                # Get inbound schedule (swap origin and destination)
+                params["station"] = self._to_station
+                async with session.post(
+                    SCHEDULE_ENDPOINT,
+                    json=params,
+                    headers=headers,
+                    timeout=10
+                ) as response:
+                    response.raise_for_status()
+                    inbound_data = await response.json()
+
             _LOGGER.warning(inbound_data)
             # Process the next 3 trips in each direction
             outbound_trips = []
@@ -176,7 +180,7 @@ class NJTransitSensor(SensorEntity):
                 "to_station": self._to_station
             }
 
-        except requests.exceptions.RequestException as error:
+        except aiohttp.ClientError as error:
             _LOGGER.error("Error fetching data from NJ Transit API: %s", error)
             self._attr_native_value = None
             self._attr_extra_state_attributes = {}

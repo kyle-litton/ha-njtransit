@@ -1,6 +1,6 @@
 """Config flow for NJ Transit integration."""
 import voluptuous as vol
-import requests
+import aiohttp
 import logging
 from homeassistant import config_entries
 from homeassistant.core import callback
@@ -28,46 +28,48 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                # First authenticate to get token
-                auth_response = requests.post(
-                    AUTH_ENDPOINT,
-                    json={
-                        "username": user_input[CONF_USERNAME],
-                        "password": user_input[CONF_PASSWORD]
-                    },
-                    headers={"accept": "application/json"}
-                )
-                auth_response.raise_for_status()
-                token = auth_response.json().get("UserToken")
+                async with aiohttp.ClientSession() as session:
+                    # First authenticate to get token
+                    async with session.post(
+                        AUTH_ENDPOINT,
+                        json={
+                            "username": user_input[CONF_USERNAME],
+                            "password": user_input[CONF_PASSWORD]
+                        },
+                        headers={"accept": "application/json"}
+                    ) as auth_response:
+                        auth_response.raise_for_status()
+                        auth_data = await auth_response.json()
+                        token = auth_data.get("UserToken")
 
-                # Test token by fetching station list
-                stations_response = requests.post(
-                    STATION_LIST_ENDPOINT,
-                    json={"token": token},
-                    headers={
-                        "accept": "application/json",
-                        "authorization": f"Bearer {token}"
-                    }
-                )
-                stations_response.raise_for_status()
-                
-                stations = stations_response.json()
-                _LOGGER.warning(stations)
-                station_codes = [station["STATIONNAME"] for station in stations]
-                
-                # Validate station codes
-                if user_input[CONF_FROM_STATION] not in station_codes:
-                    errors["from_station"] = "invalid_station"
-                if user_input[CONF_TO_STATION] not in station_codes:
-                    errors["to_station"] = "invalid_station"
-                
-                if not errors:
-                    return self.async_create_entry(
-                        title=f"NJ Transit {user_input[CONF_FROM_STATION]} to {user_input[CONF_TO_STATION]}",
-                        data=user_input,
-                    )
+                    # Test token by fetching station list
+                    async with session.post(
+                        STATION_LIST_ENDPOINT,
+                        json={"token": token},
+                        headers={
+                            "accept": "application/json",
+                            "authorization": f"Bearer {token}"
+                        }
+                    ) as stations_response:
+                        stations_response.raise_for_status()
+                        stations = await stations_response.json()
+                        
+                        _LOGGER.warning(stations)
+                        station_codes = [station["STATIONNAME"] for station in stations]
+                        
+                        # Validate station codes
+                        if user_input[CONF_FROM_STATION] not in station_codes:
+                            errors["from_station"] = "invalid_station"
+                        if user_input[CONF_TO_STATION] not in station_codes:
+                            errors["to_station"] = "invalid_station"
+                        
+                        if not errors:
+                            return self.async_create_entry(
+                                title=f"NJ Transit {user_input[CONF_FROM_STATION]} to {user_input[CONF_TO_STATION]}",
+                                data=user_input,
+                            )
                     
-            except requests.exceptions.RequestException:
+            except aiohttp.ClientError:
                 errors["base"] = "cannot_connect"
 
         return self.async_show_form(

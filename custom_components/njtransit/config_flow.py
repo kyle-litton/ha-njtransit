@@ -30,12 +30,13 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             try:
                 async with aiohttp.ClientSession() as session:
                     # First authenticate to get token
+                    auth_form = aiohttp.FormData()
+                    auth_form.add_field("username", user_input[CONF_USERNAME])
+                    auth_form.add_field("password", user_input[CONF_PASSWORD])
+
                     async with session.post(
                         AUTH_ENDPOINT,
-                        json={
-                            "username": user_input[CONF_USERNAME],
-                            "password": user_input[CONF_PASSWORD]
-                        },
+                        data=auth_form,
                         headers={"accept": "application/json"}
                     ) as auth_response:
                         auth_response.raise_for_status()
@@ -43,9 +44,12 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         token = auth_data.get("UserToken")
 
                     # Test token by fetching station list
+                    station_form = aiohttp.FormData()
+                    station_form.add_field("token", token)
+
                     async with session.post(
                         STATION_LIST_ENDPOINT,
-                        json={"token": token},
+                        data=station_form,
                         headers={
                             "accept": "application/json",
                             "authorization": f"Bearer {token}"

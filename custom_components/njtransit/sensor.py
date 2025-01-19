@@ -76,19 +76,20 @@ class NJTransitSensor(SensorEntity):
 
         try:
             async with aiohttp.ClientSession() as session:
+                auth_form = aiohttp.FormData()
+                auth_form.add_field("username", self._username)
+                auth_form.add_field("password", self._password)
+
                 async with session.post(
                     AUTH_ENDPOINT,
-                    json={
-                        "username": self._username,
-                        "password": self._password
-                    },
+                    data=auth_form,
                     headers={"accept": "application/json"},
                     timeout=10
                 ) as response:
                     response.raise_for_status()
                     auth_data = await response.json()
                     
-                    self._token = auth_data.get("token")
+                    self._token = auth_data.get("UserToken")
                     self._token_expires = datetime.now() + timedelta(hours=12)
                     
                     return self._token
@@ -116,16 +117,15 @@ class NJTransitSensor(SensorEntity):
             }
 
             # Get schedule for both directions
-            params = {
-                "token": token,
-                "station" : self._from_station
-            }
+            params = aiohttp.FormData()
+            params.add_field("token", token)
+            params.add_field("station", self._from_station)
             
             async with aiohttp.ClientSession() as session:
                 # Get outbound schedule
                 async with session.post(
                     SCHEDULE_ENDPOINT,
-                    json=params,
+                    data=params,
                     headers=headers,
                     timeout=10
                 ) as response:
@@ -133,10 +133,13 @@ class NJTransitSensor(SensorEntity):
                     outbound_data = await response.json()
 
                 # Get inbound schedule (swap origin and destination)
-                params["station"] = self._to_station
+                params = aiohttp.FormData()
+                params.add_field("token", token)
+                params.add_field("station", self._to_station)
+                
                 async with session.post(
                     SCHEDULE_ENDPOINT,
-                    json=params,
+                    data=params,
                     headers=headers,
                     timeout=10
                 ) as response:

@@ -69,7 +69,8 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                 data=user_input,
                             )
                     
-            except aiohttp.ClientError:
+            except aiohttp.ClientError as exception:
+                _LOGGER.error("Error: %s", exception)
                 errors["base"] = "cannot_connect"
 
         return self.async_show_form(

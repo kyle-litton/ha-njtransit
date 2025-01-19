@@ -22,6 +22,8 @@ from .const import (
     SCHEDULE_ENDPOINT,
 )
 
+SCAN_INTERVAL = timedelta(minutes=5)
+
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
@@ -47,6 +49,7 @@ class NJTransitSensor(SensorEntity):
 
     _attr_has_entity_name = True
     _attr_native_unit_of_measurement = "trips"
+    _attr_scan_interval = SCAN_INTERVAL
 
     def __init__(
         self,

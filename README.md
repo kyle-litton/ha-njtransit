@@ -2,6 +2,8 @@
 
 This integration provides NJ Transit train schedules in Home Assistant. Not affiliated with NJTransit please follow the usage rules outlined on the [NJ Transit Developer Portal](https://developer.njtransit.com/registration/docs). 
 
+![example](example.png)
+
 ## Features
 
 - Real-time train schedules
@@ -25,45 +27,104 @@ This integration provides NJ Transit train schedules in Home Assistant. Not affi
 
 ### How To Use
 
-For now, the data returned from the API is larger than what can be used in one state entity.
-I will plan to split these out into seperate attributes. Im the meantime add a new template sensor as shown below in your configuration yaml.
+Create a custom sensor template in configuration.yml.
 
 ```
 template:
-- sensor:
-  - name: "NJ Transit Schedule"
-    state: >
-      {{ state_attr('sensor.nj_transit_<your station>_station', 'trips')[0].status }} to {{ state_attr('sensor.nj_transit_<your station>_station', 'trips')[0].destination }}
-    attributes:
-      next_trip: >
-        {{ state_attr('sensor.nj_transit_<your station>_station', 'trips')[0] }}
-      upcoming_trips: >
-        {{ state_attr('sensor.nj_transit_<your station>_station', 'trips')[1:] }}
+  - sensor:
+      - name: "NJ Transit Schedule"
+        state: >
+          {% set trips = state_attr('sensor.nj_transit_<your station>_station', 'trips') %}
+          {% if trips and trips[0] %}
+            {% set date = strptime(trips[0].scheduled_date, '%d-%b-%Y %I:%M:%S %p') %}
+            {% set mins = ((as_timestamp(date) - as_timestamp(now())) / 60) | round(0) %}
+            {% set track = trips[0].track if (trips[0].track and trips[0].track != ' ') else 'TBD' %}
+            {{ mins }}min to {{ trips[0].destination }} (Track {{ track }})
+          {% else %}
+            No upcoming trains
+          {% endif %}
+        attributes:
+          trains: >
+            {% set data = namespace(trips=[]) %}
+            {% set raw_trips = state_attr('sensor.nj_transit_<your station>_station', 'trips') %}
+            {% for trip in raw_trips %}
+              {% set date = strptime(trip.scheduled_date, '%d-%b-%Y %I:%M:%S %p') %}
+              {% set mins = ((as_timestamp(date) - as_timestamp(now())) / 60) | round(0) %}
+              {% if mins >= 0 %}
+                {% set track = trip.track if (trip.track and trip.track != ' ') else 'TBD' %}
+                {% set data.trips = data.trips + [{'minutes': mins, 'destination': trip.destination, 'track': track}] %}
+              {% endif %}
+            {% endfor %}
+            {{ (data.trips|sort(attribute='minutes'))[:5]|tojson }}
 ```
 
-With this template, you can use the data on your dashboard in a Markdown style card. I have plans to update this further in the future to use some custom CSS and look a bit closer to the nj transit boards.
+Install mushroom cards from HACS, update your config, and reload.
 
 ```
-- type: markdown
-    title: NJ Transit Schedules
-    content: >
-        ### Next Train **Status**: {{ state_attr('sensor.nj_transit_schedule',
-        'next_trip')['status'] }}   **Time**: {{
-        state_attr('sensor.nj_transit_schedule',
-        'next_trip')['scheduled_date'] }}   **Destination**: {{
-        state_attr('sensor.nj_transit_schedule', 'next_trip')['destination']
-        }}   **Line**: {{ state_attr('sensor.nj_transit_schedule',
-        'next_trip')['line'] }}   **Track**: {{
-        state_attr('sensor.nj_transit_schedule', 'next_trip')['track'] }}  
+lovelace:
+  resources:
+    - url: /hacsfiles/mushroom-cards/mushroom-cards.js
+```
+Now we can update your dashboard yml to include the data.
 
-        ### Upcoming Trips {% for trip in
-        state_attr('sensor.nj_transit_schedule', 'upcoming_trips') %} -
-        **Time**: {{ trip.scheduled_date }}  
-        **Destination**: {{ trip.destination }}  
-        **Line**: {{ trip.line }}  
-        **Track**: {{ trip.track }}  
-        **Status**: {{ trip.status or 'On Time' }}
-        {% endfor %}
+```
+- type: vertical-stack
+  cards:
+    - type: custom:mushroom-chips-card
+      alignment: left
+      chips:
+        - type: template
+          icon: mdi:train
+          icon_color: green
+          content: >
+            {% set trains = state_attr('sensor.nj_transit_schedule',
+            'trains') %} {% if trains and trains[0] %}
+              In {{ trains[0]['minutes'] }} min: {{ state_attr('sensor.nj_transit_<your station>_station', 'station') }} to {{ trains[0]['destination'] }} (Track {{ trains[0]['track'] }})
+            {% endif %}
+    - type: custom:mushroom-chips-card
+      alignment: left
+      chips:
+        - type: template
+          icon: mdi:train
+          icon_color: green
+          content: >
+            {% set trains = state_attr('sensor.nj_transit_schedule',
+            'trains') %} {% if trains and trains[0] %}
+              In {{ trains[1]['minutes'] }} min: {{ state_attr('sensor.nj_transit_<your station>_station', 'station') }} to {{ trains[1]['destination'] }} (Track {{ trains[1]['track'] }})
+            {% endif %}
+    - type: custom:mushroom-chips-card
+      alignment: left
+      chips:
+        - type: template
+          icon: mdi:train
+          icon_color: green
+          content: >
+            {% set trains = state_attr('sensor.nj_transit_schedule',
+            'trains') %} {% if trains and trains[0] %}
+              In {{ trains[2]['minutes'] }} min: {{ state_attr('sensor.nj_transit_<your station>_station', 'station') }} to {{ trains[2]['destination'] }} (Track {{ trains[2]['track'] }})
+            {% endif %}
+    - type: custom:mushroom-chips-card
+      alignment: left
+      chips:
+        - type: template
+          icon: mdi:train
+          icon_color: green
+          content: >
+            {% set trains = state_attr('sensor.nj_transit_schedule',
+            'trains') %} {% if trains and trains[0] %}
+              In {{ trains[3]['minutes'] }} min: {{ state_attr('sensor.nj_transit_<your station>_station', 'station') }} to {{ trains[3]['destination'] }} (Track {{ trains[3]['track'] }})
+            {% endif %}
+    - type: custom:mushroom-chips-card
+      alignment: left
+      chips:
+        - type: template
+          icon: mdi:train
+          icon_color: green
+          content: >
+            {% set trains = state_attr('sensor.nj_transit_schedule',
+            'trains') %} {% if trains and trains[0] %}
+              In {{ trains[4]['minutes'] }} min: {{ state_attr('sensor.nj_transit_<your station>_station', 'station') }} to {{ trains[4]['destination'] }} (Track {{ trains[4]['track'] }})
+            {% endif %}
 ```
 
 ## Configuration
@@ -80,8 +141,8 @@ You can obtain API credentials from the [NJ Transit Developer Portal](https://de
 ## Usage
 
 After configuration, the integration will create a new sensors:
-- `sensor.station`
+- `sensor.nj_transit_<your station>_station`
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request. 

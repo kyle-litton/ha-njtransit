@@ -65,7 +65,7 @@ lovelace:
   resources:
     - url: /hacsfiles/mushroom-cards/mushroom-cards.js
 ```
-Now we can update your dashboard yml to include the data.
+Now we can update your dashboard yml to include the data. I chose to display only the next 4 trains, though 5 are retrieved. The API has set limits on API calls per day so I have set the interval to 5 minutes. If you choose to show all 5, there is a scenario where the below would show an empty card for the 5th once the departure time has passed for the 1st, prior to the refresh.
 
 ```
 - type: vertical-stack
@@ -89,7 +89,7 @@ Now we can update your dashboard yml to include the data.
           icon_color: green
           content: >
             {% set trains = state_attr('sensor.nj_transit_schedule',
-            'trains') %} {% if trains and trains[0] %}
+            'trains') %} {% if trains and trains[1] %}
               In {{ trains[1]['minutes'] }} min: {{ state_attr('sensor.nj_transit_<your station>_station', 'station') }} to {{ trains[1]['destination'] }} (Track {{ trains[1]['track'] }})
             {% endif %}
     - type: custom:mushroom-chips-card
@@ -100,7 +100,7 @@ Now we can update your dashboard yml to include the data.
           icon_color: green
           content: >
             {% set trains = state_attr('sensor.nj_transit_schedule',
-            'trains') %} {% if trains and trains[0] %}
+            'trains') %} {% if trains and trains[2] %}
               In {{ trains[2]['minutes'] }} min: {{ state_attr('sensor.nj_transit_<your station>_station', 'station') }} to {{ trains[2]['destination'] }} (Track {{ trains[2]['track'] }})
             {% endif %}
     - type: custom:mushroom-chips-card
@@ -111,19 +111,8 @@ Now we can update your dashboard yml to include the data.
           icon_color: green
           content: >
             {% set trains = state_attr('sensor.nj_transit_schedule',
-            'trains') %} {% if trains and trains[0] %}
+            'trains') %} {% if trains and trains[3] %}
               In {{ trains[3]['minutes'] }} min: {{ state_attr('sensor.nj_transit_<your station>_station', 'station') }} to {{ trains[3]['destination'] }} (Track {{ trains[3]['track'] }})
-            {% endif %}
-    - type: custom:mushroom-chips-card
-      alignment: left
-      chips:
-        - type: template
-          icon: mdi:train
-          icon_color: green
-          content: >
-            {% set trains = state_attr('sensor.nj_transit_schedule',
-            'trains') %} {% if trains and trains[0] %}
-              In {{ trains[4]['minutes'] }} min: {{ state_attr('sensor.nj_transit_<your station>_station', 'station') }} to {{ trains[4]['destination'] }} (Track {{ trains[4]['track'] }})
             {% endif %}
 ```
 

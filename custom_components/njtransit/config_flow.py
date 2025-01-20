@@ -1,9 +1,9 @@
 """Config flow for NJ Transit integration."""
+
 import voluptuous as vol
 import aiohttp
 import logging
 from homeassistant import config_entries
-from homeassistant.core import callback
 
 from .const import (
     DOMAIN,
@@ -12,10 +12,11 @@ from .const import (
     CONF_STATION,
     CONF_STATION_CODE,
     AUTH_ENDPOINT,
-    STATION_LIST_ENDPOINT
+    STATION_LIST_ENDPOINT,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for NJ Transit."""
@@ -37,7 +38,7 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     async with session.post(
                         AUTH_ENDPOINT,
                         data=auth_form,
-                        headers={"accept": "application/json"}
+                        headers={"accept": "application/json"},
                     ) as auth_response:
                         auth_response.raise_for_status()
                         auth_data = await auth_response.json()
@@ -52,25 +53,29 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         data=station_form,
                         headers={
                             "accept": "application/json",
-                            "authorization": f"Bearer {token}"
-                        }
+                            "authorization": f"Bearer {token}",
+                        },
                     ) as stations_response:
                         stations_response.raise_for_status()
                         stations = await stations_response.json()
-                        
-                        station_details = {station["STATIONNAME"]: station for station in stations}
-                        
+
+                        station_details = {
+                            station["STATIONNAME"]: station for station in stations
+                        }
+
                         # Validate station codes, and grab the station code
                         if user_input[CONF_STATION] not in station_details.keys():
                             errors["station"] = "invalid_station"
-                        
+
                         if not errors:
-                            user_input[CONF_STATION_CODE] = station_details[user_input[CONF_STATION]]["STATION_2CHAR"]
+                            user_input[CONF_STATION_CODE] = station_details[
+                                user_input[CONF_STATION]
+                            ]["STATION_2CHAR"]
                             return self.async_create_entry(
                                 title=f"NJ Transit: {user_input[CONF_STATION]} Station",
                                 data=user_input,
                             )
-                    
+
             except aiohttp.ClientError as exception:
                 _LOGGER.error("Error: %s", exception)
                 errors["base"] = "cannot_connect"
@@ -81,7 +86,7 @@ class NJTransitConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_USERNAME): str,
                     vol.Required(CONF_PASSWORD): str,
-                    vol.Required(CONF_STATION): str
+                    vol.Required(CONF_STATION): str,
                 }
             ),
             errors=errors,
